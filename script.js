@@ -33,6 +33,64 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const heroCopy = document.querySelector(".hero-copy");
 const heroArt = document.querySelector(".hero-art");
 const scrollProgress = document.querySelector(".scroll-progress");
+const backTopLink = document.querySelector(".back-top");
+
+let backTopFrame = null;
+let originalScrollBehavior = "";
+
+function cancelBackToTop() {
+  if (backTopFrame === null) return;
+
+  window.cancelAnimationFrame(backTopFrame);
+  backTopFrame = null;
+  document.documentElement.style.scrollBehavior = originalScrollBehavior;
+}
+
+backTopLink.addEventListener("click", (event) => {
+  if (
+    reduceMotion.matches ||
+    window.scrollY === 0 ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) return;
+
+  event.preventDefault();
+  cancelBackToTop();
+
+  const startingScrollY = window.scrollY;
+  const duration = 1500;
+  let startTime;
+
+  originalScrollBehavior = document.documentElement.style.scrollBehavior;
+  document.documentElement.style.scrollBehavior = "auto";
+
+  function animateBackToTop(timestamp) {
+    if (startTime === undefined) startTime = timestamp;
+
+    const progress = Math.min((timestamp - startTime) / duration, 1);
+    const easedProgress = progress < 0.5
+      ? 4 * progress ** 3
+      : 1 - ((-2 * progress + 2) ** 3) / 2;
+
+    window.scrollTo(0, startingScrollY * (1 - easedProgress));
+
+    if (progress < 1) {
+      backTopFrame = window.requestAnimationFrame(animateBackToTop);
+    } else {
+      backTopFrame = null;
+      document.documentElement.style.scrollBehavior = originalScrollBehavior;
+    }
+  }
+
+  backTopFrame = window.requestAnimationFrame(animateBackToTop);
+});
+
+window.addEventListener("wheel", cancelBackToTop, { passive: true });
+window.addEventListener("touchstart", cancelBackToTop, { passive: true });
+window.addEventListener("keydown", cancelBackToTop);
 
 window.requestAnimationFrame(() => heroCopy.classList.add("is-entered"));
 
