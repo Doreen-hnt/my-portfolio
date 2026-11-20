@@ -33,64 +33,79 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const heroCopy = document.querySelector(".hero-copy");
 const heroArt = document.querySelector(".hero-art");
 const scrollProgress = document.querySelector(".scroll-progress");
-const backTopLink = document.querySelector(".back-top");
+// Keep the accessibility skip link on the browser's native navigation.
+const smoothScrollLinks = document.querySelectorAll('a[href^="#"]:not(.skip-link)');
 
-let backTopFrame = null;
+let smoothScrollFrame = null;
 let originalScrollBehavior = "";
 
-function cancelBackToTop() {
-  if (backTopFrame === null) return;
+function cancelSmoothScroll() {
+  if (smoothScrollFrame === null) return;
 
-  window.cancelAnimationFrame(backTopFrame);
-  backTopFrame = null;
+  window.cancelAnimationFrame(smoothScrollFrame);
+  smoothScrollFrame = null;
   document.documentElement.style.scrollBehavior = originalScrollBehavior;
 }
 
-backTopLink.addEventListener("click", (event) => {
-  if (
-    reduceMotion.matches ||
-    window.scrollY === 0 ||
-    event.button !== 0 ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey ||
-    event.altKey
-  ) return;
+smoothScrollLinks.forEach((link) => {
+  link.addEventListener("click", (event) => {
+    const target = document.querySelector(link.hash);
+    if (
+      !target ||
+      reduceMotion.matches ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) return;
 
-  event.preventDefault();
-  cancelBackToTop();
+    const scrollPadding = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+    const maxScrollY = document.documentElement.scrollHeight - window.innerHeight;
+    const targetY = Math.max(0, Math.min(
+      target.getBoundingClientRect().top + window.scrollY - scrollPadding,
+      maxScrollY
+    ));
 
-  const startingScrollY = window.scrollY;
-  const duration = 1500;
-  let startTime;
+    if (Math.abs(window.scrollY - targetY) < 1) return;
 
-  originalScrollBehavior = document.documentElement.style.scrollBehavior;
-  document.documentElement.style.scrollBehavior = "auto";
+    event.preventDefault();
+    cancelSmoothScroll();
 
-  function animateBackToTop(timestamp) {
-    if (startTime === undefined) startTime = timestamp;
+    const startingScrollY = window.scrollY;
+    const distance = targetY - startingScrollY;
+    const duration = 1500;
+    let startTime;
 
-    const progress = Math.min((timestamp - startTime) / duration, 1);
-    const easedProgress = progress < 0.5
-      ? 4 * progress ** 3
-      : 1 - ((-2 * progress + 2) ** 3) / 2;
+    originalScrollBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = "auto";
 
-    window.scrollTo(0, startingScrollY * (1 - easedProgress));
+    function animateScroll(timestamp) {
+      if (startTime === undefined) startTime = timestamp;
 
-    if (progress < 1) {
-      backTopFrame = window.requestAnimationFrame(animateBackToTop);
-    } else {
-      backTopFrame = null;
-      document.documentElement.style.scrollBehavior = originalScrollBehavior;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const easedProgress = progress < 0.5
+        ? 4 * progress ** 3
+        : 1 - ((-2 * progress + 2) ** 3) / 2;
+
+      window.scrollTo(0, startingScrollY + distance * easedProgress);
+
+      if (progress < 1) {
+        smoothScrollFrame = window.requestAnimationFrame(animateScroll);
+      } else {
+        smoothScrollFrame = null;
+        document.documentElement.style.scrollBehavior = originalScrollBehavior;
+        if (window.location.hash !== link.hash) window.location.hash = link.hash;
+      }
     }
-  }
 
-  backTopFrame = window.requestAnimationFrame(animateBackToTop);
+    smoothScrollFrame = window.requestAnimationFrame(animateScroll);
+  });
 });
 
-window.addEventListener("wheel", cancelBackToTop, { passive: true });
-window.addEventListener("touchstart", cancelBackToTop, { passive: true });
-window.addEventListener("keydown", cancelBackToTop);
+window.addEventListener("wheel", cancelSmoothScroll, { passive: true });
+window.addEventListener("touchstart", cancelSmoothScroll, { passive: true });
+window.addEventListener("keydown", cancelSmoothScroll);
 
 window.requestAnimationFrame(() => heroCopy.classList.add("is-entered"));
 
