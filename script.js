@@ -28,6 +28,8 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+menuButton.closest(".site-header").classList.add("menu-ready");
+
 const revealElements = document.querySelectorAll(".reveal");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const heroCopy = document.querySelector(".hero-copy");
