@@ -78,7 +78,7 @@ document.addEventListener("click", (event) => {
   drafts.set(selectedService, draft.value);
   selectedService = link.dataset.service || "";
   const template = selectedService
-    ? `Здравствуйте, Ваня! Меня интересует услуга «${selectedService}». Хочу обсудить проект.`
+    ? `Здравствуйте! Меня интересует услуга «${selectedService}». Хочу обсудить проект.`
     : draft.defaultValue;
   draft.value = drafts.get(selectedService) ?? template;
   serviceStatus.textContent = selectedService ? `Выбранная услуга — ${selectedService}` : "";
