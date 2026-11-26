@@ -355,3 +355,6 @@ button { font: inherit; }
   .js-enabled .process-step::before { transform: scaleX(1); }
   .hero-art { transform: none; }
 }
+
+.pricing-card.pricing-automation { grid-column: 1 / -1; min-height: 0; }
+.pricing-automation .pricing-card-top { min-height: 0; margin-bottom: 16px; }
