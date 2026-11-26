@@ -125,8 +125,6 @@ function mountScene(three) {
     pointerInside = true;
     pointerX = 2 * (event.clientX - bounds.left) / bounds.width - 1;
     pointerY = 2 * (event.clientY - bounds.top) / bounds.height - 1;
-    hero.style.setProperty("--grid-x", `${pointerX * 10}px`);
-    hero.style.setProperty("--grid-y", `${pointerY * 10}px`);
     requestDraw();
   }
 
@@ -135,8 +133,6 @@ function mountScene(three) {
     pointerInside = false;
     pointerX = 0;
     pointerY = 0;
-    hero.style.removeProperty("--grid-x");
-    hero.style.removeProperty("--grid-y");
     requestDraw();
   }
 

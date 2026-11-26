@@ -52,20 +52,80 @@ for (const preview of document.querySelectorAll("[data-project-preview]")) {
 const contact = document.querySelector("#contact");
 const serviceStatus = contact.querySelector(".contact-service");
 const telegramLink = contact.querySelector(".telegram-button");
-const telegramUrl = telegramLink.href;
+const telegramUrl = new URL(telegramLink.href);
+const draft = contact.querySelector("#message-draft");
+const draftEditor = contact.querySelector(".draft-editor");
+const copyStatus = contact.querySelector(".copy-status");
+const copyButton = contact.querySelector(".copy-draft");
+const drafts = new Map();
+let selectedService = "";
+
+function updateTelegramLink() {
+  telegramUrl.searchParams.set("text", draft.value);
+  telegramLink.href = telegramUrl.href;
+  copyStatus.textContent = "";
+  copyButton.disabled = !draft.value.trim();
+}
+
+draft.addEventListener("input", updateTelegramLink);
+updateTelegramLink();
+draftEditor.hidden = false;
 
 document.addEventListener("click", (event) => {
   const link = event.target.closest('a[href="#contact"]');
   if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
 
-  const service = link.dataset.service;
-  const url = new URL(telegramUrl);
-  if (service) url.searchParams.set("text", `Здравствуйте! Хочу обсудить проект. Услуга — ${service}.`);
-
-  telegramLink.href = url.href;
-  serviceStatus.textContent = service ? `Выбранная услуга — ${service}` : "";
-  serviceStatus.hidden = !service;
+  drafts.set(selectedService, draft.value);
+  selectedService = link.dataset.service || "";
+  const template = selectedService
+    ? `Здравствуйте, Ваня! Меня интересует услуга «${selectedService}». Хочу обсудить проект.`
+    : draft.defaultValue;
+  draft.value = drafts.get(selectedService) ?? template;
+  serviceStatus.textContent = selectedService ? `Выбранная услуга — ${selectedService}` : "";
+  serviceStatus.hidden = !selectedService;
+  updateTelegramLink();
 });
+
+copyButton.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(draft.value);
+    copyStatus.textContent = "Текст скопирован";
+  } catch {
+    draft.focus();
+    draft.select();
+    copyStatus.textContent = "Текст выделен. Выберите «Копировать».";
+  }
+});
+
+const light = document.querySelector(".backdrop-light");
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+let lightFrame = null;
+let lightX = 0;
+let lightY = 0;
+function moveLight(event) {
+  if (reducedMotion.matches) return;
+  lightX = event.clientX;
+  lightY = event.clientY;
+  if (lightFrame !== null) return;
+  lightFrame = requestAnimationFrame(() => {
+    light.style.transform = `translate3d(${lightX}px, ${lightY}px, 0)`;
+    light.classList.add("is-active");
+    lightFrame = null;
+  });
+}
+function hideLight() {
+  cancelAnimationFrame(lightFrame);
+  lightFrame = null;
+  light.classList.remove("is-active");
+}
+window.addEventListener("pointermove", moveLight, { passive: true });
+window.addEventListener("pointerdown", moveLight, { passive: true });
+window.addEventListener("pointerup", (event) => {
+  if (event.pointerType !== "mouse") hideLight();
+});
+window.addEventListener("pointercancel", hideLight);
+document.documentElement.addEventListener("pointerleave", hideLight);
+reducedMotion.addEventListener("change", hideLight);
 
 let progressFrame = null;
 function updateProgress() {
