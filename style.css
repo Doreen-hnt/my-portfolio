@@ -220,3 +220,7 @@ h1, h2, h3, p { overflow-wrap: break-word; }
 
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+
+.automation-card { margin-top: 16px; }
+.automation-card .pricing-description { max-width: 70ch; }
+.automation-card .service-action { margin-top: 16px; }
