@@ -162,3 +162,25 @@ if ("IntersectionObserver" in window && !reduceMotion.matches) {
 } else {
   revealElements.forEach((element) => element.classList.add("is-visible"));
 }
+
+for (const preview of document.querySelectorAll("[data-project-preview]")) {
+  const controls = preview.querySelector(".preview-controls");
+  const buttons = controls.querySelectorAll("button");
+  const desktop = preview.querySelector(".preview-desktop");
+  const mobile = preview.querySelector(".preview-mobile");
+
+  controls.addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+
+    const showMobile = button.dataset.device === "mobile";
+    preview.dataset.device = button.dataset.device;
+    desktop.hidden = showMobile;
+    mobile.hidden = !showMobile;
+    for (const option of buttons) {
+      option.setAttribute("aria-pressed", String(option === button));
+    }
+  });
+
+  controls.hidden = false;
+}
