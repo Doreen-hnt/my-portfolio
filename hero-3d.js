@@ -1,12 +1,12 @@
 const hero = document.querySelector(".hero");
 const stage = document.querySelector(".hero-stage");
-const desktopMotion = matchMedia("(min-width: 721px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
+const motionAllowed = matchMedia("(prefers-reduced-motion: no-preference)");
 
 let initializing = false;
 let stopScene;
 
 function syncScene() {
-  if (!desktopMotion.matches) {
+  if (!motionAllowed.matches) {
     stopScene?.();
     stopScene = undefined;
     return;
@@ -16,7 +16,7 @@ function syncScene() {
   initializing = true;
   import("./assets/vendor/three.module.min.js")
     .then((three) => {
-      if (desktopMotion.matches) stopScene = mountScene(three);
+      if (motionAllowed.matches) stopScene = mountScene(three);
     })
     .catch(() => {
       // The poster remains visible if WebGL or the module is unavailable.
@@ -91,10 +91,20 @@ function mountScene(three) {
   const initialY = -.48;
   mark.rotation.set(initialX, initialY, -.085);
 
-  function render() {
+  let elapsed = 0;
+  let lastTime = null;
+
+  function render(time) {
     frame = null;
-    const targetX = initialX - pointerY * .15;
-    const targetY = initialY + pointerX * .24;
+    if (!visible || document.hidden || contextLost) {
+      lastTime = null;
+      return;
+    }
+    if (lastTime !== null) elapsed += Math.min(time - lastTime, 80);
+    lastTime = time;
+    const phase = elapsed * Math.PI * 2 / 8500;
+    const targetX = initialX + .57 * Math.sin(phase) - pointerY * .15;
+    const targetY = initialY + .16 * Math.sin(phase * 2) + pointerX * .24;
     const rotation = mark.rotation;
     rotation.x += (targetX - rotation.x) * .13;
     rotation.y += (targetY - rotation.y) * .13;
@@ -102,9 +112,7 @@ function mountScene(three) {
     key.position.x = -2 + pointerX * 3;
     renderer.render(scene, camera);
 
-    if (Math.abs(targetX - rotation.x) + Math.abs(targetY - rotation.y) + Math.abs(scrollOffset - mark.position.y) > .001) {
-      requestDraw();
-    }
+    requestDraw();
   }
 
   function requestDraw() {
@@ -114,7 +122,7 @@ function mountScene(three) {
   function resize() {
     const size = stage.clientWidth;
     if (!size) return;
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, size < 480 ? 1 : 1.5));
     renderer.setSize(size, size, false);
     requestDraw();
   }
@@ -155,7 +163,8 @@ function mountScene(three) {
   }
   function onContextRestored() {
     contextLost = false;
-    render();
+    lastTime = null;
+    requestDraw();
     stage.classList.add("is-live");
   }
 
@@ -164,7 +173,7 @@ function mountScene(three) {
   renderer.render(scene, camera);
   stage.classList.add("is-live");
   sizeObserver.observe(stage);
-  visibility.observe(hero);
+  visibility.observe(stage);
   hero.addEventListener("pointermove", onPointer, { passive: true });
   hero.addEventListener("pointerleave", resetPointer);
   window.addEventListener("scroll", onScroll, { passive: true });
@@ -192,7 +201,7 @@ function mountScene(three) {
   };
 }
 
-desktopMotion.addEventListener("change", syncScene);
+motionAllowed.addEventListener("change", syncScene);
 if ("IntersectionObserver" in window && "ResizeObserver" in window) {
   if (document.readyState === "complete") syncScene();
   else window.addEventListener("load", syncScene, { once: true });
